@@ -24,7 +24,7 @@ colored_header(f"Dashboard CRM - {utente}", description=f"Regione: {territorio i
 try:
     df_log = pd.read_csv("interazioni_log.csv")
 except FileNotFoundError:
-    df_log = pd.DataFrame(columns=["data", "tipo", "nome_contatto", "email", "telefono", "affiliazione", "angel", "fonte", "descrizione", "regione", "evento"])
+    df_log = pd.DataFrame(columns=["data", "tipo", "nome_contatto", "email", "telefono", "affiliazione", "angel", "fonte", "descrizione", "regione", "evento", "stato_interazione"])
 
 # --- SELEZIONE EVENTO E DEADLINE ---
 evento_corrente = st.selectbox("Evento di riferimento", ["SITUM-PLAY", "SITUM-FUTURE", "SUMMER SCHOOL"])
@@ -71,6 +71,7 @@ email_contatto = st.text_input("Email del contatto")
 telefono_contatto = st.text_input("Numero di telefono (facoltativo)")
 affiliazione = st.text_input("Affiliazione (dipartimento, azienda o corso di studi)")
 fonte = st.selectbox("Fonte dell'interazione", ["Telefono", "Email", "Sito web", "Instagram", "Incontro diretto", "Altro"])
+stato_interazione = st.selectbox("Stato dell'interazione", ["Contattato", "Ingaggiato (lettera di intenti)", "Ingaggiato e pagato"])
 data_interazione = st.date_input("Data dell'interazione", value=datetime.today())
 descrizione = st.text_area("Descrizione dell'interazione")
 regione = st.selectbox("Regione dell'interazione", ["Marche", "Umbria", "Abruzzo"]) if is_admin or is_coordinatore else territorio
@@ -96,7 +97,8 @@ if st.button("Registra interazione"):
         "fonte": [fonte],
         "descrizione": [descrizione],
         "regione": [regione],
-        "evento": [evento_corrente]
+        "evento": [evento_corrente],
+        "stato_interazione": [stato_interazione]
     })
     df_log = pd.concat([df_log, nuova_riga], ignore_index=True)
     df_log.to_csv("interazioni_log.csv", index=False)
