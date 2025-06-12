@@ -1,123 +1,148 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
-from streamlit_extras.colored_header import colored_header
-import matplotlib.pyplot as plt
+import os
+from datetime import datetime
+import plotly.express as px
 
-# --- CONFIGURAZIONE ---
-ANGELS = ["Nicole", "Nadia", "Alberto", "Bianca", "Vanessa", "Giorgio", "Alessandro"]
-REGIONI = {"Nicole": "Marche", "Nadia": "Marche", "Alberto": "Umbria", "Bianca": "Umbria", "Vanessa": "Abruzzo", "Giorgio": "Tutte", "Alessandro": "Tutte"}
-EVENTI_DATE = {"SITUM-PLAY": "2025-07-05", "SITUM-FUTURE": "2025-07-10", "SUMMER SCHOOL": "2025-07-25"}
+st.set_page_config(page_title="SITUM-Angels CRM", layout="wide")
 
-st.set_page_config(page_title="CRM SITUM", layout="wide")
+# File
+LOG_FILE = "interazioni_log.csv"
+OBJ_FILE = "obiettivi.csv"
 
-# --- SELEZIONE UTENTE ---
-st.sidebar.title("Accesso utente")
-utente = st.sidebar.selectbox("Chi sei?", ANGELS)
-territorio = REGIONI[utente]
-is_admin = utente == "Giorgio"
-is_coordinatore = utente == "Alessandro"
+# Inizializzazione file se non esiste
+if not os.path.exists(LOG_FILE):
+    pd.DataFrame(columns=[
+        "data", "nome", "target", "affiliazione", "regione", "evento",
+        "stato_interazione", "note", "telefono", "angel"
+    ]).to_csv(LOG_FILE, index=False)
 
-colored_header(f"Dashboard CRM - {utente}", description=f"Regione: {territorio if not (is_admin or is_coordinatore) else 'Tutte'}", color_name="violet-70")
+if not os.path.exists(OBJ_FILE):
+    pd.DataFrame(columns=[
+        "angel", "target", "evento", "obiettivo", "deadline"
+    ]).to_csv(OBJ_FILE, index=False)
 
-# --- CARICAMENTO LOG ---
-try:
-    df_log = pd.read_csv("interazioni_log.csv")
-except FileNotFoundError:
-    df_log = pd.DataFrame(columns=["data", "tipo", "nome_contatto", "email", "telefono", "affiliazione", "angel", "fonte", "descrizione", "regione", "evento", "stato_interazione"])
+# Caricamento dati
+df_log = pd.read_csv(LOG_FILE)
+df_obj = pd.read_csv(OBJ_FILE)
 
-# --- SELEZIONE EVENTO E DEADLINE ---
-evento_corrente = st.selectbox("Evento di riferimento", ["SITUM-PLAY", "SITUM-FUTURE", "SUMMER SCHOOL"])
-data_evento = st.date_input("Data evento", value=pd.to_datetime(EVENTI_DATE[evento_corrente]))
-dealine = data_evento - timedelta(days=15)
-st.caption(f"📅 Deadline obiettivi: {dealine.strftime('%d/%m/%Y')}")
+# Sidebar: login Angel
+angel = st.sidebar.selectbox("Chi sta usando il CRM?", [
+    "Nicole", "Nadia", "Alberto", "Bianca", "Vanessa", "Giorgio", "Alessandro (Coordinatore)"
+])
 
-# --- OBIETTIVI PER OGNI ANGEL ---
-if not is_admin and not is_coordinatore:
-    st.subheader("🎯 I tuoi obiettivi")
+st.sidebar.markdown("---")
+
+# Funzione per inserire interazione
+def registra_interazione():
+    with st.form("nuova_interazione"):
+        st.subheader("Registra nuova interazione")
+        nome = st.text_input("Nome")
+        target = st.selectbox("Target", ["Impresa", "Docente", "Studente"])
+        affiliazione = st.text_input("Affiliazione")
+        regione = st.selectbox("Regione", ["Marche", "Umbria", "Abruzzo"])
+        evento = st.selectbox("Evento", ["SITUM-PLAY", "SITUM-FUTURE", "Summer School"])
+        stato = st.selectbox("Stato Interazione", ["Contattato", "Lettera firmata", "Pagato"])
+        telefono = st.text_input("Telefono (facoltativo)")
+        note = st.text_area("Note")
+        submitted = st.form_submit_button("Salva")
+        if submitted:
+            nuova_riga = pd.DataFrame([{
+                "data": datetime.today().strftime("%Y-%m-%d"),
+                "nome": nome,
+                "target": target,
+                "affiliazione": affiliazione,
+                "regione": regione,
+                "evento": evento,
+                "stato_interazione": stato,
+                "note": note,
+                "telefono": telefono,
+                "angel": angel
+            }])
+            df_log_updated = pd.concat([df_log, nuova_riga], ignore_index=True)
+            df_log_updated.to_csv(LOG_FILE, index=False)
+            st.success("Interazione registrata!")
+
+# Funzione per inserire obiettivo
+def imposta_obiettivo():
+    with st.form("imposta_obiettivo"):
+        st.subheader("Imposta un nuovo obiettivo")
+        target = st.selectbox("Target", ["Impresa", "Docente", "Studente"])
+        evento = st.selectbox("Evento", ["SITUM-PLAY", "SITUM-FUTURE", "Summer School"])
+        obiettivo = st.number_input("Numero da raggiungere", min_value=1, step=1)
+        deadline = st.date_input("Scadenza (15 giorni prima evento)")
+        submitted = st.form_submit_button("Aggiungi obiettivo")
+        if submitted:
+            nuova_riga = pd.DataFrame([{
+                "angel": angel,
+                "target": target,
+                "evento": evento,
+                "obiettivo": obiettivo,
+                "deadline": deadline
+            }])
+            df_obj_updated = pd.concat([df_obj, nuova_riga], ignore_index=True)
+            df_obj_updated.to_csv(OBJ_FILE, index=False)
+            st.success("Obiettivo salvato!")
+
+# Rubrica storica
+def carica_lista_storica():
+    st.subheader("Carica lista storica (opzionale)")
+    file = st.file_uploader("CSV storico con gli stessi campi", type="csv")
+    if file:
+        df_storico = pd.read_csv(file)
+        st.dataframe(df_storico)
+        st.markdown("Puoi usarla per ricontattare vecchi contatti.")
+
+# Dashboard
+def mostra_dashboard():
+    st.header(f"Dashboard per {angel}")
     col1, col2, col3 = st.columns(3)
-    target_imprese = col1.number_input("🏢 Obiettivo Imprese", min_value=0, max_value=50, value=15, key="imp")
-    target_docenti = col2.number_input("🎓 Obiettivo Docenti", min_value=0, max_value=50, value=15, key="doc")
-    target_studenti = col3.number_input("🧑‍🎓 Obiettivo Studenti", min_value=0, max_value=300, value=30, key="stu")
+    for i, target in enumerate(["Impresa", "Docente", "Studente"]):
+        col = [col1, col2, col3][i]
+        count = df_log[(df_log["angel"] == angel) & (df_log["target"] == target)].shape[0]
+        col.metric(f"{target}s gestiti", count)
 
-    df_log_filtered = df_log[(df_log["angel"] == utente) & (df_log["evento"] == evento_corrente)]
-    col1.metric("🏢 Imprese", len(df_log_filtered[df_log_filtered["tipo"] == "Impresa"]), f"su {target_imprese}")
-    col2.metric("🎓 Docenti", len(df_log_filtered[df_log_filtered["tipo"] == "Docente"]), f"su {target_docenti}")
-    col3.metric("🧑‍🎓 Studenti", len(df_log_filtered[df_log_filtered["tipo"] == "Studente"]), f"su {target_studenti}")
+    st.subheader("Progresso obiettivi")
+    df_obj_angel = df_obj[df_obj["angel"] == angel]
+    if not df_obj_angel.empty:
+        for evento in df_obj_angel["evento"].unique():
+            st.markdown(f"### Evento: {evento}")
+            df_evento = df_obj_angel[df_obj_angel["evento"] == evento]
+            for _, row in df_evento.iterrows():
+                raggiunti = df_log[
+                    (df_log["angel"] == angel) &
+                    (df_log["target"] == row["target"]) &
+                    (df_log["evento"] == evento)
+                ].shape[0]
+                st.progress(min(raggiunti / row["obiettivo"], 1.0))
+                st.write(f"**{row['target']}**: {raggiunti}/{row['obiettivo']} entro il {row['deadline']}")
 
-# --- DASHBOARD COMPLETA PER COORDINATORE ---
-if is_coordinatore:
-    st.subheader("📋 Riepilogo per territorio, evento e target")
-    for regione in ["Marche", "Umbria", "Abruzzo"]:
-        st.markdown(f"### 📍 {regione}")
-        df_reg = df_log[df_log["regione"] == regione]
-        for evento in ["SITUM-PLAY", "SITUM-FUTURE", "SUMMER SCHOOL"]:
-            st.markdown(f"**Evento: {evento}**")
-            df_evento = df_reg[df_reg["evento"] == evento]
-            col1, col2, col3 = st.columns(3)
-            col1.metric("🏢 Imprese", len(df_evento[df_evento["tipo"] == "Impresa"]))
-            col2.metric("🎓 Docenti", len(df_evento[df_evento["tipo"] == "Docente"]))
-            col3.metric("🧑‍🎓 Studenti", len(df_evento[df_evento["tipo"] == "Studente"]))
+# Dashboard coordinatore
+def dashboard_coordinatore():
+    st.title("📊 Dashboard Coordinatore Generale")
+    for regione in df_log["regione"].unique():
+        st.subheader(f"Regione: {regione}")
+        col1, col2, col3 = st.columns(3)
+        for i, target in enumerate(["Impresa", "Docente", "Studente"]):
+            col = [col1, col2, col3][i]
+            count = df_log[(df_log["regione"] == regione) & (df_log["target"] == target)].shape[0]
+            col.metric(f"{target}s", count)
 
-    st.subheader("📊 Andamento storico per evento")
-    agg = df_log.groupby(["evento", "tipo"]).size().unstack(fill_value=0)
-    st.bar_chart(agg)
+    # Grafico storico semplice
+    st.subheader("📈 Andamento per mese")
+    df_log["mese"] = pd.to_datetime(df_log["data"]).dt.to_period("M").astype(str)
+    fig = px.bar(df_log.groupby(["mese", "target"]).size().reset_index(name="interazioni"),
+                 x="mese", y="interazioni", color="target", barmode="group")
+    st.plotly_chart(fig, use_container_width=True)
 
-# --- REGISTRAZIONE INTERAZIONI ---
-st.subheader("➕ Registra nuova interazione")
-tipo = st.selectbox("Tipo di contatto", ["Studente", "Impresa", "Docente", "Amministrazione"])
-nome_contatto = st.text_input("Nome del contatto")
-email_contatto = st.text_input("Email del contatto")
-telefono_contatto = st.text_input("Numero di telefono (facoltativo)")
-affiliazione = st.text_input("Affiliazione (dipartimento, azienda o corso di studi)")
-fonte = st.selectbox("Fonte dell'interazione", ["Telefono", "Email", "Sito web", "Instagram", "Incontro diretto", "Altro"])
-stato_interazione = st.selectbox("Stato dell'interazione", ["Contattato", "Ingaggiato (lettera di intenti)", "Ingaggiato e pagato"])
-data_interazione = st.date_input("Data dell'interazione", value=datetime.today())
-descrizione = st.text_area("Descrizione dell'interazione")
-regione = st.selectbox("Regione dell'interazione", ["Marche", "Umbria", "Abruzzo"]) if is_admin or is_coordinatore else territorio
-
-# Upload trascrizione opzionale
-with st.expander("📎 Aggiungi trascrizione da file (facoltativo)"):
-    trascrizione_file = st.file_uploader("Carica un file .txt con la trascrizione della call", type="txt")
-    trascrizione_testo = ""
-    if trascrizione_file:
-        trascrizione_testo = trascrizione_file.read().decode("utf-8")
-        st.text_area("Contenuto trascrizione", trascrizione_testo, height=150)
-
-# Salvataggio
-if st.button("Registra interazione"):
-    nuova_riga = pd.DataFrame({
-        "data": [data_interazione],
-        "tipo": [tipo],
-        "nome_contatto": [nome_contatto],
-        "email": [email_contatto],
-        "telefono": [telefono_contatto],
-        "affiliazione": [affiliazione],
-        "angel": [utente],
-        "fonte": [fonte],
-        "descrizione": [descrizione],
-        "regione": [regione],
-        "evento": [evento_corrente],
-        "stato_interazione": [stato_interazione]
-    })
-    df_log = pd.concat([df_log, nuova_riga], ignore_index=True)
-    df_log.to_csv("interazioni_log.csv", index=False)
-    st.success("Interazione registrata correttamente.")
-
-# --- CARICAMENTO VECCHIE LISTE ---
-with st.expander("📂 Caricamento o aggiornamento delle liste contatti"):
-    studenti_file = st.file_uploader("Carica elenco studenti", type="csv")
-    imprese_file = st.file_uploader("Carica elenco imprese", type="csv")
-    docenti_file = st.file_uploader("Carica elenco docenti", type="csv")
-    if studenti_file:
-        df_studenti = pd.read_csv(studenti_file)
-        st.success(f"Caricati {len(df_studenti)} studenti")
-        st.dataframe(df_studenti)
-    if imprese_file:
-        df_imprese = pd.read_csv(imprese_file)
-        st.success(f"Caricate {len(df_imprese)} imprese")
-        st.dataframe(df_imprese)
-    if docenti_file:
-        df_docenti = pd.read_csv(docenti_file)
-        st.success(f"Caricati {len(df_docenti)} docenti")
-        st.dataframe(df_docenti)
+# Interfaccia
+if angel == "Alessandro (Coordinatore)":
+    dashboard_coordinatore()
+    with st.expander("Rubrica vecchie liste"):
+        carica_lista_storica()
+else:
+    mostra_dashboard()
+    registra_interazione()
+    imposta_obiettivo()
+    with st.expander("Rubrica vecchie liste"):
+        carica_lista_storica()
