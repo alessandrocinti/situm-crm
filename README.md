@@ -1,30 +1,28 @@
-# SITUM-Angels CRM
+# SITUM-Angels CRM (Versione Unificata)
 
-Questa è una Web App sviluppata con Streamlit per supportare il monitoraggio delle interazioni nel progetto SITUM.
+Questa Web App, sviluppata con Streamlit, supporta il monitoraggio personalizzato delle interazioni tra SITUM-Angels e target (Imprese, Docenti, Studenti) per gli eventi SITUM.
 
-## ✨ Funzionalità
+## Funzionalità
+- Dashboard personalizzate per ciascun Angel (Nicole, Nadia, Alberto, Bianca, Vanessa, Giorgio)
+- Dashboard coordinatore (Alessandro) con dati aggregati per regione ed evento
+- Registrazione delle interazioni con campi completi:
+  - Stato interazione (Contattato, Lettera firmata, Pagato)
+  - Affiliazione (corso, azienda, dipartimento)
+  - Fonte (email, telefono, sito, Instagram)
+  - Note, Trascrizione, Telefono
+- Caricamento delle trascrizioni e rubriche storiche
+- Obiettivi configurabili per target ed evento con deadline
+- Salvataggio persistente delle interazioni in `interazioni_log.csv`
+- Grafici mensili di andamento per il coordinatore
+- Compatibile con Streamlit Cloud e GitHub
 
-- Dashboard personalizzate per ciascun SITUM-Angel
-- Dashboard coordinatore generale (Alessandro) con riepilogo per regione e target
-- Obiettivi configurabili per evento e target
-- Gestione delle interazioni con 3 stati: Contattato, Ingegaggiato con firma, Ingegaggiato e pagato
-- Caricamento di trascrizioni vocali o note testuali
-- Caricamento di vecchie liste per ricontatto (rubrica)
-- Grafici riepilogativi per confrontare stagioni
-- Scadenze impostabili per ogni obiettivo
-- Affiliazione (dipartimento/impresa/corso) e contatto telefonico
-- Icone e interfaccia visuale migliorata
-
-## 📁 File del progetto
-
-- `crm_situm_app.py`: Codice principale dell'app
-- `interazioni_log.csv`: Database delle interazioni in tempo reale
-- `obiettivi.csv`: Obiettivi per angel, evento, target, con deadline
-- `requirements.txt`: Dipendenze Python
-- `README.md`: Istruzioni
-
-## 🛠️ Installazione
-
+## Installazione
 ```bash
 pip install -r requirements.txt
-streamlit run crm_situm_app.py
+streamlit run crm_situm_app_unificato.py
+```
+
+## File inclusi
+- `crm_situm_app_unificato.py`: Codice dell'app
+- `interazioni_log.csv`: Registro persistente delle interazioni
+- `requirements.txt`: Dipendenze

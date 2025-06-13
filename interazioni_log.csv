@@ -1,1 +1,4 @@
-data,nome,target,affiliazione,regione,evento,stato_interazione,note,telefono,angel
+data,nome,target,affiliazione,regione,evento,stato_interazione,fonte,note,telefono,trascrizione,angel
+2025-06-10,Mario Rossi,Docente,UNIVPM - DII,Marche,SITUM-FUTURE,Form compilato,Email,Ha confermato interesse,3331234567,,Nicole
+2025-06-11,Luca Bianchi,Studente,UNIPG - Economia,Umbria,SUMMER SCHOOL,Form compilato,Instagram,Contatto via DM,3339876543,,Alberto
+2025-06-12,Sara Verdi,Impresa,Startup Verde Srl,Abruzzo,SITUM-PLAY,Lettera firmata,Sito,Lettera firmata da CEO,3331122334,,Vanessa
